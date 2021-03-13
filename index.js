@@ -2,10 +2,13 @@ require("dotenv").config();
 const express = require("express");
 const app = express();
 const fetch = require("node-fetch");
-const port = 3000;
+const port = 8000;
+const bodyParser = require('body-parser');
+const cors = require('cors');
 const nodemailer = require("nodemailer");
 var nodemailerSendgrid = require("nodemailer-sendgrid");
 const mongoose = require("mongoose");
+const { request } = require("express");
 mongoose.connect(process.env.MONGO_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -16,6 +19,8 @@ let globalAvailableLocations = [];
 
 const recipientSchema = new mongoose.Schema({
   email: String,
+}, {
+  versionKey: false
 });
 
 const Recipient = mongoose.model("Recipient", recipientSchema);
@@ -24,7 +29,7 @@ const shouldSend = (a1, a2) => {
   return a1.length > a2.length && JSON.stringify(a1) !== JSON.stringify(a2);
 };
 
-const buildEmailBody = (availableLocations) => {
+const buildEmailBody = (availableLocations, userEmail) => {
   return `<p>COVID-19 Vaccination Appointments available at: </p>
           <ul>
           ${availableLocations
@@ -44,8 +49,9 @@ const buildEmailBody = (availableLocations) => {
                 "</li>"
             )
             .join("")}
-          </ul>
-          `;
+          </ul> `+ 
+          `<p>Click <a target="_blank" href="http://localhost:8000/unsubscribe/`+userEmail+`">here</a> to unsubscribe</p>`
+          ;
 };
 
 const processResData = (data) => {
@@ -61,6 +67,8 @@ const processResData = (data) => {
   return available;
 };
 
+app.use(bodyParser.json());
+app.use(cors());
 app.get("/", (req, res) => {
   res.send("200/OK");
 });
@@ -78,7 +86,7 @@ const sendEmail = (availableLocations, recipient) => {
     to: recipient,
     subject: "New Appointments Available",
     text: "New Appointments Available",
-    html: buildEmailBody(availableLocations),
+    html: buildEmailBody(availableLocations, recipient),
   };
 
   transport.sendMail(email, function (err, info) {
@@ -89,6 +97,32 @@ const sendEmail = (availableLocations, recipient) => {
     }
   });
 };
+
+app.post("/", async (req, res) => {
+  try {
+    // Check if email is already in database
+    const emailExist = await Recipient.findOne({email: req.body.email});
+    if (emailExist) return res.status(400).send("Email already exists");
+
+    
+    const newRecipient = new Recipient({email: req.body.email});
+    const addedRecipient = await newRecipient.save();
+    console.log("added " + JSON.stringify(newRecipient));
+  } catch (err) {
+    console.log(err)
+  }
+})
+
+// unsubscribe an email from the list
+app.get("/unsubscribe/:email", async (req, res) => {
+  try {
+    console.log(req.params.email);
+    const removedEmail = await Recipient.deleteOne({email: req.params.email})
+    res.send("You are now unsubscribed! Stay safe!");
+  } catch (err) {
+    console.log(err)
+  }
+})
 
 app.listen(port, () => {
   console.log(`App listening at http://localhost:${port}`);
