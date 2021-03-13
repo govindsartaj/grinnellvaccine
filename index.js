@@ -34,9 +34,15 @@ const shouldSend = (a1, a2) => {
   return a1.length > a2.length && JSON.stringify(a1) !== JSON.stringify(a2);
 };
 
-const buildEmailBody = (availableLocations, userEmailToken) => {
+const buildEmailBody = (availableLocations, userEmailToken, type) => {
   return (
-    `<p>COVID-19 Vaccination Appointments available at: </p>
+    `
+    ${
+      type === "confirm"
+        ? "<p>Thanks for signing up to receive Iowa vaccine appointment availability alerts.</p>"
+        : ""
+    }
+    <p>Currently, appointments are available at: </p>
           <ul>
           ${availableLocations
             .map(
@@ -60,7 +66,7 @@ const buildEmailBody = (availableLocations, userEmailToken) => {
           </ul> ` +
     `<p>Click <a target="_blank" href="https://grinnellvaccine-server.herokuapp.com/unsubscribe/` +
     userEmailToken +
-    `">here</a> to unsubscribe</p>`
+    `">here</a> to stop receiving these emails.</p>`
   );
 };
 
@@ -83,7 +89,7 @@ app.get("/", (req, res) => {
   res.send("200/OK");
 });
 
-const sendEmail = (availableLocations, recipient) => {
+const sendEmail = (availableLocations, recipient, type = "update") => {
   const transport = nodemailer.createTransport(
     nodemailerSendgrid({
       apiKey: process.env.API_KEY,
@@ -93,11 +99,18 @@ const sendEmail = (availableLocations, recipient) => {
   var email = {
     from: '"Iowa Vaccine Alert" alert@em7027.grinnellvaccine.tech',
     to: recipient,
-    subject: "New Appointments Available",
-    text: "New Appointments Available",
+    subject:
+      type === "confirm"
+        ? "Sign Up Confirmation"
+        : "New Appointments Available",
+    text:
+      type === "confirm"
+        ? "Sign Up Confirmation"
+        : "New Appointments Available",
     html: buildEmailBody(
       availableLocations,
-      jwt.sign({ email: recipient }, process.env.JWT_SECRET)
+      jwt.sign({ email: recipient }, process.env.JWT_SECRET),
+      type
     ),
   };
 
@@ -122,6 +135,7 @@ app.post("/", async (req, res) => {
 
     const newRecipient = new Recipient({ email: req.body.email });
     const addedRecipient = await newRecipient.save();
+    sendEmail(globalAvailableLocations, req.body.email, "confirm");
     res.send({ success: "You are now subscribed! Thank you!" });
     console.log(req.body.email + " subscribed");
   } catch (err) {
