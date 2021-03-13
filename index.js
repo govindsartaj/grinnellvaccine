@@ -3,12 +3,14 @@ const express = require("express");
 const app = express();
 const fetch = require("node-fetch");
 const port = process.env.PORT || 80;
-const bodyParser = require('body-parser');
-const cors = require('cors');
+const bodyParser = require("body-parser");
+const cors = require("cors");
 const nodemailer = require("nodemailer");
 var nodemailerSendgrid = require("nodemailer-sendgrid");
 const mongoose = require("mongoose");
 const { request } = require("express");
+var jwt = require("jsonwebtoken");
+
 mongoose.connect(process.env.MONGO_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -17,11 +19,14 @@ const db = mongoose.connection;
 
 let globalAvailableLocations = [];
 
-const recipientSchema = new mongoose.Schema({
-  email: String,
-}, {
-  versionKey: false
-});
+const recipientSchema = new mongoose.Schema(
+  {
+    email: String,
+  },
+  {
+    versionKey: false,
+  }
+);
 
 const Recipient = mongoose.model("Recipient", recipientSchema);
 
@@ -29,8 +34,9 @@ const shouldSend = (a1, a2) => {
   return a1.length > a2.length && JSON.stringify(a1) !== JSON.stringify(a2);
 };
 
-const buildEmailBody = (availableLocations, userEmail) => {
-  return `<p>COVID-19 Vaccination Appointments available at: </p>
+const buildEmailBody = (availableLocations, userEmailToken) => {
+  return (
+    `<p>COVID-19 Vaccination Appointments available at: </p>
           <ul>
           ${availableLocations
             .map(
@@ -49,9 +55,11 @@ const buildEmailBody = (availableLocations, userEmail) => {
                 "</li>"
             )
             .join("")}
-          </ul> `+ 
-          `<p>Click <a target="_blank" href="https://grinnellvaccine-server.herokuapp.com/unsubscribe/`+userEmail+`">here</a> to unsubscribe</p>`
-          ;
+          </ul> ` +
+    `<p>Click <a target="_blank" href="https://grinnellvaccine-server.herokuapp.com/unsubscribe/` +
+    userEmailToken +
+    `">here</a> to unsubscribe</p>`
+  );
 };
 
 const processResData = (data) => {
@@ -74,7 +82,6 @@ app.get("/", (req, res) => {
 });
 
 const sendEmail = (availableLocations, recipient) => {
-  console.log(process.env.API_KEY);
   const transport = nodemailer.createTransport(
     nodemailerSendgrid({
       apiKey: process.env.API_KEY,
@@ -86,7 +93,10 @@ const sendEmail = (availableLocations, recipient) => {
     to: recipient,
     subject: "New Appointments Available",
     text: "New Appointments Available",
-    html: buildEmailBody(availableLocations, recipient),
+    html: buildEmailBody(
+      availableLocations,
+      jwt.sign({ email: recipient }, process.env.JWT_SECRET)
+    ),
   };
 
   transport.sendMail(email, function (err, info) {
@@ -101,29 +111,29 @@ const sendEmail = (availableLocations, recipient) => {
 app.post("/", async (req, res) => {
   try {
     // Check if email is already in database
-    const emailExist = await Recipient.findOne({email: req.body.email});
-    if (emailExist) return res.send({error: "You're already subscribed."})
+    const emailExist = await Recipient.findOne({ email: req.body.email });
+    if (emailExist) return res.send({ error: "You're already subscribed." });
 
-    
-    const newRecipient = new Recipient({email: req.body.email});
+    const newRecipient = new Recipient({ email: req.body.email });
     const addedRecipient = await newRecipient.save();
-    res.send({success: "You are now subscribed! Thank you!"})
+    res.send({ success: "You are now subscribed! Thank you!" });
     console.log("added " + JSON.stringify(newRecipient));
   } catch (err) {
-    console.log(err)
+    console.log(err);
   }
-})
+});
 
 // unsubscribe an email from the list
-app.get("/unsubscribe/:email", async (req, res) => {
+app.get("/unsubscribe/:emailToken", async (req, res) => {
   try {
-    console.log(req.params.email);
-    const removedEmail = await Recipient.deleteOne({email: req.params.email})
+    var decoded = jwt.verify(req.params.emailToken, process.env.JWT_SECRET);
+    console.log(decoded);
+    const removedEmail = await Recipient.deleteOne({ email: decoded.email });
     res.send("You are now unsubscribed! Stay safe!");
   } catch (err) {
-    console.log(err)
+    console.log(err);
   }
-})
+});
 
 app.listen(port, () => {
   console.log(`App listening at http://localhost:${port}`);
