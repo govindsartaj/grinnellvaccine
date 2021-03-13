@@ -68,7 +68,7 @@ const buildEmailBody = (availableLocations, userEmailToken, type) => {
             )
             .join("")}
           </ul> ` +
-    `<p>Click <a target="_blank" href="https://grinnellvaccine.herokuapp.com/unsubscribe/` +
+    `<p>Click <a target="_blank" href="https://grinnellvaccine.tech/unsubscribe/` +
     userEmailToken +
     `">here</a> to stop receiving these emails.</p>`
   );
