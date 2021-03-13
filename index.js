@@ -102,11 +102,12 @@ app.post("/", async (req, res) => {
   try {
     // Check if email is already in database
     const emailExist = await Recipient.findOne({email: req.body.email});
-    if (emailExist) return res.status(400).send("Email already exists");
+    if (emailExist) return res.send({error: "You're already subscribed."})
 
     
     const newRecipient = new Recipient({email: req.body.email});
     const addedRecipient = await newRecipient.save();
+    res.send({success: "You are now subscribed! Thank you!"})
     console.log("added " + JSON.stringify(newRecipient));
   } catch (err) {
     console.log(err)
