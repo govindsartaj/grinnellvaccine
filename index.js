@@ -64,7 +64,7 @@ const buildEmailBody = (availableLocations, userEmailToken, type) => {
             )
             .join("")}
           </ul> ` +
-    `<p>Click <a target="_blank" href="https://grinnellvaccine-server.herokuapp.com/unsubscribe/` +
+    `<p>Click <a target="_blank" href="https://grinnellvaccine.herokuapp.com/unsubscribe/` +
     userEmailToken +
     `">here</a> to stop receiving these emails.</p>`
   );
@@ -149,7 +149,7 @@ app.get("/unsubscribe/:emailToken", async (req, res) => {
     var decoded = jwt.verify(req.params.emailToken, process.env.JWT_SECRET);
     console.log(decoded.email + " unsubscribed");
     const removedEmail = await Recipient.deleteOne({ email: decoded.email });
-    res.send("You are now unsubscribed! Stay safe!");
+    res.send({ success: "You are now unsubscribed! Stay safe!" });
   } catch (err) {
     console.log(err);
   }
