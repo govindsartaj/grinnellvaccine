@@ -50,7 +50,7 @@ const buildEmailBody = (availableLocations, userEmail) => {
             )
             .join("")}
           </ul> `+ 
-          `<p>Click <a target="_blank" href="http://localhost:8000/unsubscribe/`+userEmail+`">here</a> to unsubscribe</p>`
+          `<p>Click <a target="_blank" href="https://grinnellvaccine-server.herokuapp.com/unsubscribe/`+userEmail+`">here</a> to unsubscribe</p>`
           ;
 };
 
