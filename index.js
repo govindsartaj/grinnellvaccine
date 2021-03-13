@@ -42,7 +42,11 @@ const buildEmailBody = (availableLocations, userEmailToken, type) => {
         ? "<p>Thanks for signing up to receive Iowa vaccine appointment availability alerts.</p>"
         : ""
     }
-    <p>Currently, appointments are available at: </p>
+    <p>${
+      availableLocations.length === 0
+        ? "Currently, no appointments are available."
+        : "Currently, appointments are available at:"
+    }</p>
           <ul>
           ${availableLocations
             .map(
