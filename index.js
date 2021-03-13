@@ -117,7 +117,7 @@ app.post("/", async (req, res) => {
     const newRecipient = new Recipient({ email: req.body.email });
     const addedRecipient = await newRecipient.save();
     res.send({ success: "You are now subscribed! Thank you!" });
-    console.log("added " + JSON.stringify(newRecipient));
+    console.log(req.body.email + ' subscribed');
   } catch (err) {
     console.log(err);
   }
@@ -127,7 +127,7 @@ app.post("/", async (req, res) => {
 app.get("/unsubscribe/:emailToken", async (req, res) => {
   try {
     var decoded = jwt.verify(req.params.emailToken, process.env.JWT_SECRET);
-    console.log(decoded);
+    console.log(decoded.email + ' unsubscribed');
     const removedEmail = await Recipient.deleteOne({ email: decoded.email });
     res.send("You are now unsubscribed! Stay safe!");
   } catch (err) {
