@@ -46,6 +46,8 @@ const buildEmailBody = (availableLocations, userEmailToken) => {
                 " " +
                 location.provider_brand_name +
                 " - " +
+                location.address +
+                ", " +
                 location.city +
                 ", " +
                 location.state +
@@ -108,6 +110,10 @@ const sendEmail = (availableLocations, recipient) => {
   });
 };
 
+app.get("/appointments", (req, res) => {
+  res.send({ appointments: globalAvailableLocations });
+});
+
 app.post("/", async (req, res) => {
   try {
     // Check if email is already in database
@@ -117,7 +123,7 @@ app.post("/", async (req, res) => {
     const newRecipient = new Recipient({ email: req.body.email });
     const addedRecipient = await newRecipient.save();
     res.send({ success: "You are now subscribed! Thank you!" });
-    console.log(req.body.email + ' subscribed');
+    console.log(req.body.email + " subscribed");
   } catch (err) {
     console.log(err);
   }
@@ -127,7 +133,7 @@ app.post("/", async (req, res) => {
 app.get("/unsubscribe/:emailToken", async (req, res) => {
   try {
     var decoded = jwt.verify(req.params.emailToken, process.env.JWT_SECRET);
-    console.log(decoded.email + ' unsubscribed');
+    console.log(decoded.email + " unsubscribed");
     const removedEmail = await Recipient.deleteOne({ email: decoded.email });
     res.send("You are now unsubscribed! Stay safe!");
   } catch (err) {
