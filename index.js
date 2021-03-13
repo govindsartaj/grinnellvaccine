@@ -56,8 +56,8 @@ const buildEmailBody = (availableLocations, userEmailToken, type) => {
                 " " +
                 location.provider_brand_name +
                 " - " +
-                location.address +
-                ", " +
+                
+                `${location.address !== null ? location.address + ", " : ''}` +
                 location.city +
                 ", " +
                 location.state +
@@ -68,7 +68,7 @@ const buildEmailBody = (availableLocations, userEmailToken, type) => {
             )
             .join("")}
           </ul> ` +
-    `<p>Click <a target="_blank" href="https://grinnellvaccine.tech/unsubscribe/` +
+    `<p>Click <a target="_blank" href="https://www.grinnellvaccine.tech/unsubscribe/` +
     userEmailToken +
     `">here</a> to stop receiving these emails.</p>`
   );
