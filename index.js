@@ -3,6 +3,7 @@ const express = require("express");
 const app = express();
 const fetch = require("node-fetch");
 const port = process.env.PORT || 80;
+// const port = 8000;
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
@@ -26,6 +27,7 @@ const recipientSchema = new mongoose.Schema(
     email: String,
     zipcode: Number,
     radius: Number,
+    lastSent: Array
   },
   {
     versionKey: false,
@@ -96,7 +98,7 @@ const buildEmailBody = (
             )
             .join("")}
           </ul> ` +
-    `<p><strong>IMPORTANT:</strong> Click <a target="_blank" href="https://www.grinnellvaccine.tech/update/` +
+    `<p><strong>IMPORTANT REMINDER:</strong> Click <a target="_blank" href="https://www.grinnellvaccine.tech/update/` +
     userEmailToken +
     `">here</a> to ${
       recipient.zipcode !== undefined && recipient.radius !== undefined
@@ -200,6 +202,7 @@ app.post("/", async (req, res) => {
       email: req.body.email,
       zipcode: req.body.zipcode,
       radius: req.body.radius,
+      lastSent: [],
     });
     const addedRecipient = await newRecipient.save();
 
@@ -284,19 +287,19 @@ app.listen(port, () => {
   db.once("open", function () {
     console.log("db connected");
 
-    Recipient.find(function (err, recipientList) {
-      if (err) return console.error(err);
+    // Recipient.find(function (err, recipientList) {
+    //   if (err) return console.error(err);
 
-      for (recipient of recipientList) {
-        console.log(recipient.radius);
-        if (recipient.zipcode === undefined || recipient.radius === undefined) {
-          sendEmailToRequestZip(
-            recipient,
-            jwt.sign({ email: recipient.email }, process.env.JWT_SECRET)
-          );
-        }
-      }
-    });
+    //   for (recipient of recipientList) {
+    //     console.log(recipient.radius);
+    //     if (recipient.zipcode === undefined || recipient.radius === undefined) {
+    //       sendEmailToRequestZip(
+    //         recipient,
+    //         jwt.sign({ email: recipient.email }, process.env.JWT_SECRET)
+    //       );
+    //     }
+    //   }
+    // });
 
     setInterval(async () => {
       try {
@@ -308,7 +311,7 @@ app.listen(port, () => {
         globalAvailableLocations = processResData(resJson);
         console.log(globalAvailableLocations);
         if (shouldSend(globalAvailableLocations, prevAvailableLocations)) {
-          Recipient.find(function (err, recipientList) {
+          Recipient.find(async function (err, recipientList) {
             if (err) return console.error(err);
             for (recipient of recipientList) {
               if (
@@ -325,11 +328,21 @@ app.listen(port, () => {
                         recipient.radius
                       )
                     : globalAvailableLocations;
-                if (locationsWithinRadius.length > 0) {
+
+
+                console.log(JSON.stringify(recipient.lastSent.map(a => parseInt(a.properties.id)).sort()), JSON.stringify(locationsWithinRadius.map(a => a.properties.id).sort()))
+
+                    
+                if (locationsWithinRadius.length > 0 && JSON.stringify(recipient.lastSent.map(a => parseInt(a.properties.id)).sort()) !== JSON.stringify(locationsWithinRadius.map(a => a.properties.id).sort())) {
+              
+                  const update = await Recipient.findOneAndUpdate({email: recipient.email}, {lastSent: locationsWithinRadius})
                   sendEmail(
                     locationsWithinRadius.map((l) => l.properties),
                     recipient
                   );
+                  
+                } else {
+                  console.log('did not send email to ' + recipient.email)
                 }
               }
             }
