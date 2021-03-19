@@ -23,6 +23,11 @@ const haversineDistance = ([lat1, lon1], [lat2, lon2], isMiles = true) => {
 
 const getCoordsFromZipcode = (zipcode) => {
   const zipObj = iowaZipcodes.find((a) => a.fields.zip === zipcode);
+
+  if (zipObj === undefined) {
+    return null
+  }
+
   return [zipObj.fields.latitude, zipObj.fields.longitude];
 };
 
@@ -34,13 +39,18 @@ const getLocationsWithinRadius = (locations, userZip, radius) => {
   for (let i = 0; i < locations.length; i++) {
     const location = locations[i];
     const locationCoords = location.geometry.coordinates;
+    const userCoords = getCoordsFromZipcode(userZip)
+    if (userCoords === null) {
+      return []
+    }
+    
     const distance =
       Math.ceil(
         haversineDistance(
           locationCoords[0] < locationCoords[1]
             ? locationCoords.reverse()
             : locationCoords,
-          getCoordsFromZipcode(userZip)
+          userCoords
         ) / 10
       ) * 10;
 
