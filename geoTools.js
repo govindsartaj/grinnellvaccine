@@ -36,14 +36,15 @@ const getLocationsWithinRadius = (locations, userZip, radius) => {
 
   if (locations === []) return [];
 
+  const userCoords = getCoordsFromZipcode(userZip)
+  if (userCoords === null) {
+    return []
+  }
+
   for (let i = 0; i < locations.length; i++) {
     const location = locations[i];
     const locationCoords = location.geometry.coordinates;
-    const userCoords = getCoordsFromZipcode(userZip)
-    if (userCoords === null) {
-      return []
-    }
-    
+
     const distance =
       Math.ceil(
         haversineDistance(
