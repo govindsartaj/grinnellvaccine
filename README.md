@@ -8,4 +8,4 @@ With the API, we use SendGrid to send emails to users who have signed up for [ou
 We also ask for users' zip code and the maximum distance they can travel to receive the vaccine to only alert them of nearby available appointments. 
 
 
-*This repo contains code for the back end of our service. Find the front end code [here!](https://github.com/charunupara/GrinnellVaccineFrontEnd)*
+*This repo contains code for the back end of our service. Find the front end code [here!](https://github.com/govindsartaj/grinnellvaccine)*
